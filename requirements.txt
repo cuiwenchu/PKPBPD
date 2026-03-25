@@ -1,0 +1,12 @@
+bioeq==0.1.4
+fastapi==0.135.2
+matplotlib==3.10.8
+numpy==2.4.3
+pandas==3.0.1
+polars==1.39.3
+pydantic==2.12.5
+pyvivc==1.0
+scipy==1.17.1
+starlette==1.0.0
+statsmodels==0.14.6
+uvicorn==0.42.0

@@ -1,0 +1,142 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>韩美PBPK / PKPD 口服制剂 BE 评估系统</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<div class="bg"></div>
+<div class="app">
+<header class="hero">
+<section class="panel sec">
+<div class="eyebrow">Local Python Backend / Real Status Polling / Open-Source Workflow</div>
+<div class="title">韩美PBPK / PKPD 口服制剂 BE 评估系统</div>
+<p class="lede">当前版本改为真实本地后端执行。浏览器页只负责参数录入、状态轮询和可视化，吸收/溶解/IVIVC/BE 统计由本机 Python 后端完成，并在系统自检里核验已安装包和已下载仓库。</p>
+<div class="meta">
+<span class="pill">本地 Python 后端</span>
+<span class="pill">真实任务队列</span>
+<span class="pill">pyvivc / bioeq</span>
+<span class="pill">浏览器单页入口</span>
+</div>
+</section>
+<section class="panel sec">
+<div class="k" style="color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.16em">系统状态</div>
+<div id="state" class="state run">等待操作</div>
+<div id="stext" class="hint">页面只做展示和输入，点击运行后会提交给本地后端执行。</div>
+<div class="progress"><div id="bar"></div></div>
+<div class="meta" style="margin-top:10px">
+<span id="countdown" class="pill">倒计时 --</span>
+<span id="countdownDetail" class="pill">等待任务</span>
+</div>
+<div class="meta">
+<div class="box"><div class="k">当前方案</div><div id="caseName" class="v">未载入</div></div>
+<div class="box"><div class="k">模型步数</div><div id="steps" class="v">0</div></div>
+<div class="box"><div class="k">BE 成功率</div><div id="beMini" class="v">0%</div></div>
+</div>
+</section>
+</header>
+<div class="toolbar">
+<button id="demo" class="ghost">加载示例</button>
+<button id="run" class="primary">运行分析</button>
+<button id="check" class="ghost">系统自检</button>
+<button id="exp" class="ghost">导出 JSON</button>
+<button id="load" class="ghost">载入 JSON</button>
+<input id="file" type="file" accept="application/json,.json" hidden />
+</div>
+<main class="main">
+<aside class="side">
+<section class="panel sec">
+<div class="k" style="color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.14em">Case setup</div>
+<h2 style="margin:0">输入参数</h2>
+<div style="height:12px"></div>
+<div class="k" style="color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.14em">Compound</div>
+<div class="f2">
+<label>剂量 (mg)<input id="dose" type="number" value="100" min="1"></label>
+<label>体重 (kg)<input id="weight" type="number" value="70" min="30" step="0.1"></label>
+<label>CL/F (L/h)<input id="cl" type="number" value="15" min="0.1" step="0.1"></label>
+<label>V/F (L)<input id="v" type="number" value="80" min="1" step="0.1"></label>
+<label>ka (1/h)<input id="ka" type="number" value="1.2" min="0.01" step="0.01"></label>
+<label>ktr (1/h)<input id="ktr" type="number" value="1.05" min="0.01" step="0.01"></label>
+<label>pKa<input id="pka" type="number" value="5.2" min="0.5" max="12" step="0.1"></label>
+<label>logP<input id="logP" type="number" value="2.4" min="-1" max="6" step="0.1"></label>
+<label>渗透性<input id="permeability" type="number" value="1.4" min="0.1" max="5" step="0.1"></label>
+<label>基础溶解度<input id="solubility" type="number" value="1.0" min="0.1" max="5" step="0.1"></label>
+</div>
+<div style="height:12px"></div>
+<div class="k" style="color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.14em">Formulation</div>
+<div class="f2">
+<label>参考溶出<input id="refDiss" type="number" value="1.00" min="0.1" step="0.01"></label>
+<label>参考溶解度<input id="refSol" type="number" value="1.00" min="0.1" step="0.01"></label>
+<label>参考粒径<input id="refPart" type="number" value="1.00" min="0.1" step="0.01"></label>
+<label>参考 Fabs<input id="refFabs" type="number" value="0.92" min="0.1" max="1" step="0.01"></label>
+<label>测试溶出<input id="testDiss" type="number" value="0.82" min="0.1" step="0.01"></label>
+<label>测试溶解度<input id="testSol" type="number" value="0.95" min="0.1" step="0.01"></label>
+<label>测试粒径<input id="testPart" type="number" value="1.15" min="0.1" step="0.01"></label>
+<label>测试 Fabs<input id="testFabs" type="number" value="0.86" min="0.1" max="1" step="0.01"></label>
+</div>
+<div style="height:12px"></div>
+<div class="k" style="color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.14em">Virtual BE</div>
+<div class="f3">
+<label>受试者数<input id="subjects" type="number" value="24" min="6" step="1"></label>
+<label>模拟次数<input id="trials" type="number" value="40" min="4" step="1"></label>
+<label>CL CV%<input id="clcv" type="number" value="20" min="0" step="1"></label>
+<label>V CV%<input id="vcv" type="number" value="15" min="0" step="1"></label>
+<label>ka CV%<input id="kacv" type="number" value="18" min="0" step="1"></label>
+<label>Food 因子<input id="food" type="number" value="1.00" min="0.4" max="1.8" step="0.01"></label>
+</div>
+<div style="height:12px"></div>
+<div class="k" style="color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.14em">PD</div>
+<div class="f2">
+<label>Emax<input id="emax" type="number" value="1.0" step="0.1"></label>
+<label>EC50<input id="ec50" type="number" value="2.0" min="0.01" step="0.01"></label>
+<label>Hill<input id="hill" type="number" value="1.2" min="0.1" step="0.1"></label>
+<label>Baseline<input id="e0" type="number" value="0" step="0.1"></label>
+</div>
+</section>
+<section class="panel sec">
+<div class="k" style="color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.14em">Import / export</div>
+<h2 style="margin:0">病例 JSON</h2>
+<div style="height:12px"></div>
+<textarea id="json" spellcheck="false"></textarea>
+<div class="hint" style="margin-top:10px">支持粘贴 JSON 后直接载入并运行；页面会把最新参数缓存到本地。</div>
+</section>
+<section class="panel sec">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+<div>
+<div class="k" style="color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.14em">Self-check</div>
+<h2 style="margin:0">系统自检</h2>
+</div>
+<span id="badge" class="pill">未检测</span>
+</div>
+<div style="height:10px"></div>
+<div id="checks" class="checks"></div>
+</section>
+</aside>
+<section class="content">
+<section class="panel sec">
+<div class="k" style="color:var(--m);font-size:12px;text-transform:uppercase;letter-spacing:.14em">Analysis result</div>
+<h2 style="margin:0">结果总览</h2>
+<div style="height:12px"></div>
+<div id="cards" class="cards"></div>
+</section>
+<section class="panel sec">
+<div class="head"><div><h3 style="margin:0">人体区域吸收 / 溶解流图</h3><span>胃肠道、血管、心脏、肝脏、肾脏、肌肉、脂肪</span></div><span id="flowHint">等待运行</span></div>
+<div class="grid"><div id="sil" class="chart"></div><div id="heat" class="chart"></div></div>
+</section>
+<div class="grid">
+<section class="panel sec"><div class="head"><div><h3 style="margin:0">浓度-时间曲线</h3><span>参考 vs 测试</span></div><span>PK 曲线</span></div><div id="pk" class="chart"></div></section>
+<section class="panel sec"><div class="head"><div><h3 style="margin:0">区域吸收报表</h3><span>每个解剖区域的 AUC / Cmax / Tmax</span></div></div><table class="tbl"><thead><tr><th>区域</th><th>Ref AUC</th><th>Test AUC</th><th>Ref Cmax</th><th>Test Cmax</th><th>Tmax</th></tr></thead><tbody id="rep"></tbody></table></section>
+</div>
+<section class="panel sec"><div class="head"><div><h3 style="margin:0">BE 成功率与 IVIVC</h3><span>90% CI、f2、相关性和虚拟试验成功率</span></div><span id="meta">待运行</span></div><div class="grid"><div id="be" class="chart2"></div><div id="iv" class="chart2"></div></div></section>
+<section class="panel sec"><div class="head"><div><h3 style="margin:0">审计日志</h3><span>后端任务状态与系统自检过程</span></div><div class="pager"><button id="logPrev" class="ghost" type="button">上一页</button><span id="logPageInfo" class="pill">1 / 1</span><button id="logNext" class="ghost" type="button">下一页</button></div></div><div id="log" class="log"></div></section>
+</section>
+</main>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
+
+
+

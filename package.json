@@ -1,0 +1,10 @@
+{
+  "name": "pbpk-pbpd-be-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local open-source-inspired PBPK/PKPD BE evaluation web app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
